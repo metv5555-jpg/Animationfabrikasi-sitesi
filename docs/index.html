@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animasyon Fabrikası</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">🎬 Animasyon Fabrikası</div>
+      <ul class="nav-links">
+        <li><a href="#creator">Senaryo Oluştur</a></li>
+        <li><a href="#about">Hakkında</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-content">
+      <h1>AI Animasyon Senaryo Fabrikası</h1>
+      <p>Netflix ve Webtoon tarzında animasyon senaryoları oluşturun</p>
+      <button class="btn-primary" onclick="scrollToCreator()">Başla</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <section id="creator" class="creator-section">
+      <h2>✍️ Senaryo Oluşturucu</h2>
+      
+      <div class="form-group">
+        <label>🎭 Türler</label>
+        <select id="genres" multiple>
+          <option>Aksiyon</option>
+          <option>Korku</option>
+          <option>Dram</option>
+          <option>Komedi</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>🎨 Çizim Tarzı</label>
+        <select id="style">
+          <option>Anime</option>
+          <option>Webtoon</option>
+          <option>Cartoon</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>✍️ Senaryo Metni</label>
+        <textarea id="story" rows="8" placeholder="Senaryo yazın..."></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" onclick="saveStory()">💾 Kaydet</button>
+        <button class="btn-secondary" onclick="playStory()">▶️ Oynat</button>
+      </div>
+    </section>
+
+    <section id="player-section" class="player-section">
+      <div id="player"></div>
+    </section>
+
+    <section id="saved" class="saved-section"></section>
+
+    <section id="about" class="about-section">
+      <h2>ℹ️ Hakkında</h2>
+      <p>Animasyon Fabrikası - Senaryo oluşturma ve oynatma platformu</p>
+    </section>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Animasyon Fabrikası</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
