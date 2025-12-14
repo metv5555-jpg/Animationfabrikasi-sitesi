@@ -2,113 +2,335 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Animasyon Fabrikası</title>
   <style>
-  body { margin:0; font-family: Arial, sans-serif; background:#0b0b0b; color:#fff; }
-  header { padding:15px; font-size:22px; font-weight:bold; background:#111; }
-  .container { padding:15px; }
-  select, textarea, button { width:100%; margin:8px 0; padding:10px; border-radius:6px; border:none; }
-  button { background:#e50914; color:white; font-weight:bold; }
-  .scene { margin-top:20px; padding:20px; background:#111; border-radius:10px; animation:fadeIn 1s; }
-  @keyframes fadeIn { from {opacity:0; transform:scale(0.95);} to {opacity:1;} }
-  .player { margin-top:20px; padding:15px; background:#000; border-radius:10px; }
-  .small { opacity:0.7; font-size:13px; }
+    :root{ --bg:#0b0b0b; --panel:#111; --accent:#e50914; --muted:#777; color-scheme: dark; }
+    html,body{ height:100%; margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:#fff; }
+    header{ padding:16px; font-size:20px; font-weight:700; background:var(--panel); border-bottom:1px solid #111; }
+    .container{ padding:16px; max-width:980px; margin:16px auto; }
+    label{ display:block; margin-top:12px; font-weight:600; }
+    select, textarea, input[type="text"], .controls button, input[type="range"] {
+      width:100%; margin:8px 0; padding:10px; border-radius:8px; border:none; background:#121212; color:#fff;
+    }
+    .controls{ display:flex; gap:10px; margin-top:8px; }
+    .controls button{ flex:1; cursor:pointer; padding:10px 12px; border-radius:8px; }
+    button.save{ background:var(--accent); color:#fff; font-weight:700; }
+    button.play{ background:#0a7; color:#000; font-weight:700; }
+    button.ghost{ background:#333; color:#fff; }
+    .scene{ margin-top:16px; padding:14px; background:var(--panel); border-radius:10px; animation:fadeIn 0.35s ease; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+    .player{ margin-top:18px; padding:14px; background:#000; border-radius:10px; min-height:100px; }
+    .small{ opacity:0.75; font-size:13px; color:var(--muted); }
+    .saved-list{ margin-top:12px; display:grid; gap:10px; }
+    .saved-item{ padding:10px; background:#0f0f0f; border-radius:8px; display:flex; gap:10px; align-items:flex-start; }
+    .saved-item .meta{ flex:1; }
+    .saved-item .meta p{ margin:0 0 6px 0; line-height:1.4; }
+    .saved-item .actions{ display:flex; gap:8px; flex-direction:column; }
+    .pop { transform:scale(1.02); box-shadow:0 8px 30px rgba(0,0,0,0.6); transition:transform 0.25s ease; }
+    footer{ margin-top:18px; color:var(--muted); font-size:13px; text-align:center; }
+    .inline-row { display:flex; gap:8px; align-items:center; }
+    .inline-row > * { flex:1; }
+    .label-muted { font-size:13px; color:var(--muted); margin-top:6px; }
+    @media(min-width:640px){
+      .controls button{ width:auto; flex:unset; padding:10px 16px; }
+      .saved-item .actions{ flex-direction:row; }
+      .inline-row > * { flex:unset; }
+    }
   </style>
 </head>
 <body>
+  <header>🎬 Animasyon Fabrikası — Basit Demo</header>
+  <main class="container">
+    <label>🎭 Türler (çoklu seç)</label>
+    <select multiple size="4" aria-label="Türler">
+      <option>Aksiyon</option><option>Korku</option><option>Dram</option><option>Komedi</option>
+      <option>Fantastik</option><option>Macera</option><option>BL</option><option>GL</option>
+    </select>
 
-<header>🎬 Animasyon Fabrikası</header>
+    <label>🎨 Çizim Tarzı</label>
+    <select aria-label="Çizim Tarzı">
+      <option>Anime</option><option>Webtoon</option><option>Cartoon</option>
+      <option>Dark</option><option>Horror</option><option>Realistic</option>
+    </select>
 
-<div class="container">
+    <label>✍️ Senaryo</label>
+    <textarea id="story" rows="6" placeholder="Mehmet karanlık koridorda yürür. Kapı gıcırdar..."></textarea>
 
-<h3>🎭 Türler (çoklu seç)</h3>
-<select id="genres" multiple>
-  <option>Aksiyon</option>
-  <option>Korku</option>
-  <option>Dram</option>
-  <option>Komedi</option>
-  <option>Fantastik</option>
-  <option>Macera</option>
-  <option>BL</option>
-  <option>GL</option>
-</select>
+    <div class="controls" role="group" aria-label="Senaryo kontrolleri">
+      <button class="save" id="saveBtn">💾 Senaryoyu Kaydet</button>
+      <button class="play" id="playBtn">▶️ Animasyonu Oynat</button>
+      <button class="ghost" id="clearBtn">🗑️ Tümünü Temizle</button>
+    </div>
 
-<h3>🎨 Çizim Tarzı</h3>
-<select id="style">
-  <option>Anime</option>
-  <option>Webtoon</option>
-  <option>Cartoon</option>
-  <option>Dark Horror</option>
-  <option>Realistic</option>
-</select>
+    <!-- Yeni: Konuşma / Ses Ayarları (ücretsiz, Web Speech API kullanır) -->
+    <div class="scene" aria-hidden="false" style="margin-top:12px;">
+      <label>🔊 Ses Ayarları (Ücretsiz)</label>
+      <div class="inline-row">
+        <select id="voiceSelect" aria-label="Ses seçimi">
+          <option>Yükleniyor...</option>
+        </select>
+      </div>
+      <div class="inline-row" style="margin-top:8px;">
+        <div style="flex:1">
+          <label class="label-muted">Hız (rate): <span id="rateVal">0.95</span></label>
+          <input id="rate" type="range" min="0.6" max="1.6" step="0.05" value="0.95" />
+        </div>
+        <div style="flex:1">
+          <label class="label-muted">Perde (pitch): <span id="pitchVal">1</span></label>
+          <input id="pitch" type="range" min="0.5" max="2" step="0.1" value="1" />
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <label class="label-muted"><input id="ttsToggle" type="checkbox" checked /> Konuşmayı kullan (Web Speech API) — değilse otomatik süre tahmini kullanılır</label>
+      </div>
+      <div class="label-muted" style="margin-top:8px;">Not: Bu özellik tamamen ücretsiztir; tarayıcınızın Web Speech API'sini kullanır. Bazı tarayıcılarda sesler farklı isimlerde olabilir.</div>
+    </div>
 
-<h3>✍️ Senaryo</h3>
-<textarea id="story" rows="6" placeholder="Mehmet karanlık koridorda yürür. Kapı gıcırdar..."></textarea>
+    <div id="saved" class="saved-list" aria-live="polite"></div>
 
-<button onclick="saveStory()">💾 Senaryoyu Kaydet</button>
-<button onclick="playStory()">▶️ Animasyonu Oynat</button>
+    <div id="player" class="player" aria-live="polite"></div>
 
-<div id="saved"></div>
-<div id="player"></div>
+    <footer class="small">Basit bir statik demo — Web Speech API konuşma ve sahne göstergesi içerir.</footer>
+  </main>
 
-</div>
+  <script>
+    const story = document.getElementById('story');
+    const saved = document.getElementById('saved');
+    const player = document.getElementById('player');
+    const saveBtn = document.getElementById('saveBtn');
+    const playBtn = document.getElementById('playBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
-<script>
-let stories = JSON.parse(localStorage.getItem("stories")||"[]");
+    const voiceSelect = document.getElementById('voiceSelect');
+    const rateInput = document.getElementById('rate');
+    const pitchInput = document.getElementById('pitch');
+    const rateVal = document.getElementById('rateVal');
+    const pitchVal = document.getElementById('pitchVal');
+    const ttsToggle = document.getElementById('ttsToggle');
 
-function saveStory(){
-  const text = story.value.trim();
-  if(!text) return alert("Senaryo boş");
-  stories.push(text);
-  localStorage.setItem("stories", JSON.stringify(stories));
-  renderSaved();
-}
+    let stories = JSON.parse(localStorage.getItem('stories') || '[]');
 
-function renderSaved(){
-  saved.innerHTML="<h3>📚 Kayıtlı Senaryolar</h3>";
-  stories.forEach((s,i)=>{
-    saved.innerHTML+=`
-      <div class="scene">
-        <b>Senaryo ${i+1}</b>
-        <button onclick="playSaved(${i})">Oynat</button>
-        <button onclick="del(${i})">Sil</button>
-      </div>`;
-  });
-}
-renderSaved();
+    function escapeHTML(s){
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
 
-function del(i){ stories.splice(i,1); localStorage.setItem("stories",JSON.stringify(stories)); renderSaved(); }
-function playSaved(i){ play(stories[i]); }
-function playStory(){ play(story.value); }
+    function renderSaved(){
+      saved.innerHTML = '';
+      if(!stories.length){
+        saved.innerHTML = '<p class="small">📚 Kayıtlı senaryo yok.</p>';
+        return;
+      }
+      stories.forEach((s,i)=>{
+        const item = document.createElement('div');
+        item.className = 'saved-item';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const title = document.createElement('div');
+        title.className = 'small';
+        title.textContent = `Senaryo ${i+1}`;
+        const snippet = document.createElement('p');
+        snippet.innerHTML = escapeHTML(s).slice(0,300) + (s.length>300 ? '…' : '');
+        meta.appendChild(title);
+        meta.appendChild(snippet);
 
-function play(text){
-  const scenes = splitScenes(text, 120);
-  let index=0;
-  player.innerHTML="";
-  next();
-  function next(){
-    if(index>=scenes.length) return;
-    const s = scenes[index];
-    player.innerHTML=`
-      <div class="player">
-        <h2>Sahne ${index+1}</h2>
-        <p>${s}</p>
-        <p class="small">Karakter: Mehmet</p>
-      </div>`;
-    speak(s);
-    cinematicEffect();
-    index++;
-    setTimeout(next, 4000);
-  }
-}
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const playBtn = document.createElement('button');
+        playBtn.className = 'play';
+        playBtn.textContent = 'Oynat';
+        playBtn.onclick = ()=> play(s);
 
-function splitScenes(text,len){ let arr=[]; for(let i=0;i<text.length;i+=len){ arr.push(text.slice(i,i+len)); } return arr; }
+        const delBtn = document.createElement('button');
+        delBtn.className = 'ghost';
+        delBtn.textContent = 'Sil';
+        delBtn.onclick = ()=>{
+          if(confirm('Bu senaryoyu silmek istediğinize emin misiniz?')){
+            del(i);
+          }
+        };
 
-function speak(text){ const u = new SpeechSynthesisUtterance(text); u.lang="tr-TR"; u.rate=0.95; speechSynthesis.speak(u); }
+        actions.appendChild(playBtn);
+        actions.appendChild(delBtn);
 
-function cinematicEffect(){ document.body.style.background="#000"; setTimeout(()=>document.body.style.background="#0b0b0b",300); }
-</script>
+        item.appendChild(meta);
+        item.appendChild(actions);
+        saved.appendChild(item);
+      });
+    }
 
+    function saveStory(){
+      const text = story.value.trim();
+      if(!text) return alert('Senaryo boş');
+      stories.push(text);
+      localStorage.setItem('stories', JSON.stringify(stories));
+      story.value = '';
+      renderSaved();
+    }
+
+    function del(index){
+      stories.splice(index,1);
+      localStorage.setItem('stories', JSON.stringify(stories));
+      renderSaved();
+    }
+
+    // Sahnele bölme
+    function splitScenes(text, maxLen = 120){
+      if(!text) return [];
+      const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+      const out = [];
+      let current = '';
+      for(const s of sentences){
+        const part = s.trim();
+        if(!part) continue;
+        if((current + ' ' + part).trim().length <= maxLen){
+          current = (current + ' ' + part).trim();
+        } else {
+          if(current) out.push(current);
+          if(part.length > maxLen){
+            for(let i=0;i<part.length;i+=maxLen){
+              out.push(part.substring(i, i+maxLen).trim());
+            }
+            current = '';
+          } else {
+            current = part;
+          }
+        }
+      }
+      if(current) out.push(current);
+      return out;
+    }
+
+    // SpeechSynthesis ses listesi / seçimi (ücretsiz)
+    let voices = [];
+    function loadVoices(){
+      if(!('speechSynthesis' in window)){
+        voiceSelect.innerHTML = '<option>Tarayıcıda Web Speech API yok</option>';
+        return;
+      }
+      voices = window.speechSynthesis.getVoices() || [];
+      voiceSelect.innerHTML = '';
+      if(!voices.length){
+        voiceSelect.innerHTML = '<option>Sesler yok (bekleniyor)</option>';
+        return;
+      }
+      voices.forEach((v, idx)=>{
+        const o = document.createElement('option');
+        o.value = idx;
+        o.textContent = `${v.name} — ${v.lang}` + (v.default ? ' (default)' : '');
+        voiceSelect.appendChild(o);
+      });
+      // varsayılan olarak Türkçe bir ses aramaya çalış
+      const trIdx = voices.findIndex(v => /tr(-|$)/i.test(v.lang));
+      voiceSelect.value = (trIdx >= 0 ? trIdx : voices.findIndex(v => v.default) || 0);
+    }
+    if('speechSynthesis' in window){
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
+    } else {
+      loadVoices();
+    }
+
+    // Konuşma: onend eventi ile otomatik sahne geçişi
+    function speakWithEvents(text){
+      return new Promise((resolve)=>{
+        if(!ttsToggle.checked || !('speechSynthesis' in window)){
+          // fallback: tahmini süre (kelime sayısına göre)
+          const words = (text.trim().split(/\s+/).filter(Boolean)).length || 1;
+          // base WPM ~ 130, rate etkiler
+          const baseWPM = 130;
+          const rate = parseFloat(rateInput.value) || 1;
+          const estimatedMs = Math.max(600, Math.round((words / (baseWPM * rate)) * 60 * 1000));
+          setTimeout(resolve, estimatedMs);
+          return;
+        }
+        try{
+          // iptal etmeden önce mevcutleri durdurma (ancak entegrasyon için iptal etmiyoruz burada)
+          // window.speechSynthesis.cancel();
+          const utt = new SpeechSynthesisUtterance(text);
+          utt.rate = parseFloat(rateInput.value) || 0.95;
+          utt.pitch = parseFloat(pitchInput.value) || 1;
+          utt.lang = 'tr-TR'; // tercihen
+          // seçili voice varsa ata
+          const idx = parseInt(voiceSelect.value);
+          if(!Number.isNaN(idx) && voices[idx]) utt.voice = voices[idx];
+          let fired = false;
+          utt.onend = ()=>{
+            if(fired) return;
+            fired = true;
+            resolve();
+          };
+          utt.onerror = (e)=>{
+            if(fired) return;
+            fired = true;
+            // hata olursa küçük bir bekleme ile devam et
+            console.warn('TTS hata', e);
+            setTimeout(resolve, 350);
+          };
+          window.speechSynthesis.speak(utt);
+          // güvenlik: 30s aşırı uzunluğa karşı zaman aşımı
+          setTimeout(()=>{ if(!fired){ fired = true; resolve(); } }, 30000);
+        }catch(e){
+          console.warn('speakWithEvents hata', e);
+          setTimeout(resolve, 600);
+        }
+      });
+    }
+
+    // Sahne oynatma: her sahneyi speakWithEvents ile ilerlet
+    async function play(text){
+      const scenes = splitScenes(text, 120);
+      if(!scenes.length){
+        alert('Oynatılacak sahne yok.');
+        return;
+      }
+      // Eğer zaten oynatılıyorsa öncekileri iptal et
+      if('speechSynthesis' in window) window.speechSynthesis.cancel();
+      player.innerHTML = '';
+      for(let i=0;i<scenes.length;i++){
+        const s = scenes[i];
+        player.innerHTML = `
+          <div class="scene pop">
+            <h3>Sahne ${i+1}</h3>
+            <p>${escapeHTML(s)}</p>
+            <p class="small">Karakter: Mehmet</p>
+          </div>
+        `;
+        // küçük görsel efekt
+        setTimeout(()=> {
+          const el = player.querySelector('.scene');
+          if(el) el.classList.remove('pop');
+        }, 350);
+        // konuşma veya tahmini süreye göre bekle
+        await speakWithEvents(s);
+      }
+      // oynatma bittiğinde bilgi ver
+      player.innerHTML += `<div class="small" style="margin-top:10px; opacity:0.9;">Oynatma tamamlandı.</div>`;
+    }
+
+    // Arayüz bağlama
+    saveBtn.addEventListener('click', saveStory);
+    playBtn.addEventListener('click', ()=> play(story.value));
+    clearBtn.addEventListener('click', ()=>{
+      if(confirm('Tüm kayıtlı senaryolar yerelden silinsin mi?')){
+        stories = [];
+        localStorage.removeItem('stories');
+        renderSaved();
+        player.innerHTML = '';
+        if('speechSynthesis' in window) window.speechSynthesis.cancel();
+      }
+    });
+
+    rateInput.addEventListener('input', ()=> { rateVal.textContent = rateInput.value; });
+    pitchInput.addEventListener('input', ()=> { pitchVal.textContent = pitchInput.value; });
+
+    // Başlangıç render
+    renderSaved();
+  </script>
 </body>
 </html>
